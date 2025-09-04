@@ -1,0 +1,76 @@
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+from scipy.stats import norm
+from scipy.stats import poisson
+# Define the directory containing the files
+directory = '/content/drive/MyDrive/Senior_project_data/MinuteData_For_Fluke_2022'
+# List all files in the directory
+files = os.listdir(directory)
+# Sort the list of files in ascending order
+files_sorted = sorted(files)
+# Create histograms and save them to "histogram_pdf.pdf"
+with PdfPages('histogram_pdf.pdf') as pdf:
+    # open file outside loop
+    with open("analyst_data", "w") as file2:
+    # Loop through each file and open it
+        for file_name in files_sorted:
+            file_path = os.path.join(directory, file_name)
+            # Attempt to open the file
+            try:
+                with open(file_path, 'r') as file:
+                    # print(file_path)
+                    line_data = file.readlines()
+                    with open("cut_data", "w") as file1:
+                        for line in line_data:
+                            if line.startswith(("S10", "S20", "S30", "S40", "S50", "S00")):
+                                data = line[6:]
+                                file1.write(data)
+                            if line.startswith("Subject"):
+                                date = line[38:46]
+                                a = date
+                    file1.close()
+                file.close()
+            except Exception as e:
+                # print(f"Error processing file {file_name}: {e}")
+                continue  # Skip to the next file
+
+            # Load data from "cut_data" file
+            with open("cut_data", "r") as filename:
+                try:
+                    data = np.loadtxt(filename, comments='#', usecols=range(18), unpack=True)
+                    merged_data = data.flatten()
+                    array_day = np.array(merged_data)  # Access the flattened array directly
+                    average = int(np.nanmean(array_day))
+                    for j in range(len(array_day)):
+                        if not (0 < array_day[j] < 999):
+                            array_day[j] = average
+                    # Fit a normal distribution to the data
+                    bins = np.linspace(200, 500, num=301)
+                    nanmean, nanstd = norm.fit(array_day)
+                    # Plot the histogram.
+                    plt.hist(array_day, bins, density=False, alpha=0.6, color='g', label='Histrogram')
+                    # Plot the normal distribution line.
+                    xmin, xmax = plt.xlim()
+                    x = np.linspace(xmin, xmax, 100)
+                    p = norm.pdf(x, nanmean, nanstd) * len(array_day)
+                    plt.plot(x, p, 'k', linewidth=2, label='Normal Distribution')
+                    plt.xlabel('count in 10 sec')
+                    plt.ylabel('Frequency')
+                    title = ("Histogram in {0}".format(a))
+                    plt.title(title)
+                    # creating a numpy array for x-axis
+                    x = np.arange(200, 500, 1)
+                    # poisson distribution data for y-axis
+                    mu = np.nanmean(array_day)
+                    y = poisson.pmf(x, mu) * len(array_day)
+                    # plotting the graph
+                    plt.plot(x, y, color="r", label='Poisson Distribution')
+                    # save pdf file
+                    plt.legend()
+                    pdf.savefig()
+                    plt.close()
+                except Exception as e:
+                # print(f"Error loadtxt {file_name}: {e}")
+                    continue
