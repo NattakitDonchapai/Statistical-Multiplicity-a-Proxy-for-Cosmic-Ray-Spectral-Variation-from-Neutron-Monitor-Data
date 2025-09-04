@@ -1,0 +1,41 @@
+import os
+import matplotlib.pyplot as plt
+from scipy.stats import pearsonr
+
+directory = '/content/drive/MyDrive/Senior_project_data/analysis_Stat vs Leader'
+# List all files in the directory
+files = os.listdir(directory)
+
+for file_name in files:
+    file_path = os.path.join(directory, file_name)
+
+    dates = []
+    stats = []
+    leaders = []
+
+    # Read data from file
+    with open(file_path, 'r') as file:
+        for line in file:
+            line = line.strip()  # Remove leading/trailing whitespaces
+            parts = line.split("\t")  # Assuming the values are separated by tabs
+            if len(parts) == 3:  # Ensure there are three parts (date, stat, leader)
+                date = parts[0]
+                stat = parts[1]
+                leader = parts[2]
+                dates.append(date)
+                stats.append(float(stat))
+                leaders.append(float(leader))
+
+    # Plot
+    plt.scatter(stats, leaders, color="c")
+
+    # Calculate correlation coefficient
+    correlation_coefficient, _ = pearsonr(stats, leaders)
+    print(f"Correlation coefficient = {correlation_coefficient}")
+
+plt.xlabel('Statistical Multiplicity')
+plt.ylabel('Leader Fraction')
+plt.title('Leader Fraction vs Statistical Multiplicity')
+plt.grid(True)
+plt.tight_layout()
+plt.show()
