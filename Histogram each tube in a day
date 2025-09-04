@@ -1,0 +1,71 @@
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+from scipy.stats import norm
+from scipy.stats import poisson
+
+# Define the file path
+file_path = '/content/drive/MyDrive/Senior_project_data/MinuteData_For_Fluke_2020/PRS_20_01_01.DAT'
+
+# Open the file for processing
+with open(file_path, 'r') as file:
+    # print(file_path)
+    line_data = file.readlines()
+
+    # Open the "cut_data" file for writing processed data
+    with open("cut_data", "w") as file1:
+        for line in line_data:
+            if line.startswith(("S10", "S20", "S30", "S40", "S50", "S00")):
+                data = line[6:]
+                file1.write(data)
+
+# Load data from "cut_data" file
+with open("cut_data", "r") as filename:
+    data = np.loadtxt(filename, comments='#', usecols=range(18), unpack=True)
+
+# Calculate statistics and write to "analyst_data" file
+with open("analyst_data", "w") as file2:
+    for x in range(18):
+        tube = data[x, :]
+        for j in range(len(tube)):
+            if not (0 < tube[j] < 999):
+                tube[j] = np.nan
+        A = np.nanmean(tube)
+        B = np.nanstd(tube)
+        C = B ** 2 / A
+        file2.write(f"{x+1} {np.nanmean(tube)} {np.nanstd(tube)} {C}\n")
+
+# Create histograms and save them to "histogram_pdf.pdf"
+with PdfPages('histogram_pdf.pdf') as pdf:
+    for z in range(18):
+        array_tube = data[z, :]
+        average = int(np.nanmean(array_tube))
+        for j in range(len(array_tube)):
+            if not (0 < array_tube[j] < 999):
+                array_tube[j] = average
+        # Fit a normal distribution to the data
+        bins = np.linspace(200, 500, num=301)
+        nanmean, nanstd = norm.fit(array_tube)
+        # Plot the histogram.
+        plt.hist(array_tube, bins, density=False, alpha=0.6, color='g', label='Histrogram')
+        # Plot the normal distribution line.
+        xmin, xmax = plt.xlim()
+        x = np.linspace(xmin, xmax, 100)
+        p = norm.pdf(x, nanmean, nanstd) * len(array_tube)
+        plt.plot(x, p, 'k', linewidth=2, label='Normal Distribution')
+        plt.xlabel('count in 10 sec')
+        plt.ylabel('Frequency')
+        title = "Histogram Tube: {0}".format(z+1)
+        plt.title(title)
+        # creating a numpy array for x-axis
+        x = np.arange(200, 500, 1)
+        # poisson distribution data for y-axis
+        mu = np.nanmean(array_tube)
+        y = poisson.pmf(x, mu) * len(array_tube)
+        # plotting the graph
+        plt.plot(x, y, color="r", label='Poisson Distribution')
+        # save pdf file
+        plt.legend()
+        pdf.savefig()
+        plt.close()
