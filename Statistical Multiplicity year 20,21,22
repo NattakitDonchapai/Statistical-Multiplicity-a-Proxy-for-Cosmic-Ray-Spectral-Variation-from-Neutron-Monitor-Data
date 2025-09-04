@@ -1,0 +1,202 @@
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+from scipy.stats import norm
+from scipy.stats import poisson
+# Define the directory containing the files
+directory = '/content/drive/MyDrive/Senior_project_data/MinuteData_For_Fluke_2020'
+# List all files in the directory
+files = os.listdir(directory)
+# Sort the list of files in ascending order
+files_sorted = sorted(files)
+# open file outside loop
+with open("analyst_data", "w") as file2:
+# Loop through each file and open it
+    for file_name in files_sorted:
+        file_path = os.path.join(directory, file_name)
+        # Attempt to open the file
+        try:
+            with open(file_path, 'r') as file:
+                # print(file_path)
+                line_data = file.readlines()
+                with open("cut_data", "w") as file1:
+                    for line in line_data:
+                        if line.startswith(("S10", "S20", "S30", "S40", "S50", "S00")):
+                            data = line[6:]
+                            file1.write(data)
+                file1.close()
+            file.close()
+        except Exception as e:
+            # print(f"Error processing file {file_name}: {e}")
+            continue  # Skip to the next file
+
+        # Load data from "cut_data" file
+        with open("cut_data", "r") as filename:
+            try:
+                data = np.loadtxt(filename, comments='#', usecols=range(18), unpack=True)
+            except Exception as e:
+                # print(f"Error loadtxt {file_name}: {e}")
+                continue
+        filename.close()
+
+        try:
+            with open(file_path, 'r') as file:
+                line_data = file.readlines()
+            for line in line_data:
+                if line.startswith("Subject"):
+                    # print(line)
+                    date = line[38:46]
+                    # print(date)
+                    file2.write(date +"\t")
+            file.close()
+        except Exception as e:
+            # print(f"Error processing file {file_name}: {e}")
+            continue  # Skip to the next file
+
+        # Calculate statistics and write to "analyst_data" file
+        total_stat_multi = 0.00
+        for x in range(18):
+            tube = data[x, :]
+            # average = int(np.nanmean(tube))
+            for j in range(len(tube)):
+                if not (0 < tube[j] < 999):
+                    tube[j] = np.nan
+            A = np.nanmean(tube)
+            B = np.nanstd(tube)
+            C = B ** 2 / A
+            total_stat_multi += C
+        mean_stat_multi = total_stat_multi/18
+        file2.write(f"{mean_stat_multi}\n")
+file2.close()
+
+positions = []
+
+# year 2020
+with open('analyst_data', 'r') as file3:
+    for line_number, line in enumerate(file3, start=0):
+        line = line.strip()  # Remove leading/trailing whitespaces
+        if line != "nan" or line.startswith("teData\P"):
+            date, _ = line.split('\t')  # Assuming the values are separated by tabs
+            if (date.endswith('_01_01') or date.endswith('_01_16') or date.endswith('_02_01') or
+                date.endswith('_02_16') or date.endswith('_03_01') or date.endswith('_03_16') or
+                date.endswith('_04_01') or date.endswith('_04_16') or date.endswith('_05_01') or
+                date.endswith('_05_16') or date.endswith('_06_01') or date.endswith('_06_15') or
+                date.endswith('_07_02') or date.endswith('_07_16') or date.endswith('_08_01') or
+                date.endswith('_08_17') or date.endswith('_09_03') or date.endswith('_09_16') or
+                date.endswith('_10_01') or date.endswith('_10_16') or date.endswith('_11_01') or
+                date.endswith('_11_16') or date.endswith('_12_01') or date.endswith('_12_17') or
+                date.endswith('_12_31')):
+                positions.append(str(line_number))
+
+# year 2021
+# with open('analyst_data', 'r') as file3:
+#     for line_number, line in enumerate(file3, start=0):
+#         line = line.strip()  # Remove leading/trailing whitespaces
+#         if line != "nan" or line.startswith("teData\P"):
+#             date, _ = line.split('\t')  # Assuming the values are separated by tabs
+#             if (date.endswith('_01_01') or date.endswith('_01_16') or date.endswith('_02_01') or
+#                 date.endswith('_02_16') or date.endswith('_03_01') or date.endswith('_03_15') or
+#                 date.endswith('_04_01') or date.endswith('_04_16') or date.endswith('_05_01') or
+#                 date.endswith('_05_16') or date.endswith('_06_01') or date.endswith('_06_15') or
+#                 date.endswith('_07_01') or date.endswith('_07_16') or date.endswith('_08_01') or
+#                 date.endswith('_08_16') or date.endswith('_09_01') or date.endswith('_09_16') or
+#                 date.endswith('_10_01') or date.endswith('_10_16') or date.endswith('_11_01') or
+#                 date.endswith('_11_16') or date.endswith('_12_01') or date.endswith('_12_16') or
+#                 date.endswith('_12_31')):
+#                 positions.append(str(line_number))
+
+# year 2022
+# with open('analyst_data', 'r') as file3:
+#     for line_number, line in enumerate(file3, start=0):
+#         line = line.strip()  # Remove leading/trailing whitespaces
+#         if line != "nan" or line.startswith("teData\P"):
+#             date, _ = line.split('\t')  # Assuming the values are separated by tabs
+#             if (date.endswith('_01_02') or date.endswith('_01_16') or date.endswith('_02_02') or
+#                 date.endswith('_02_18') or date.endswith('_03_01') or date.endswith('_03_16') or
+#                 date.endswith('_04_01') or date.endswith('_04_15') or date.endswith('_05_22') or
+#                 date.endswith('_07_02') or date.endswith('_08_06') or date.endswith('_09_16') or
+#                 date.endswith('_10_01') or date.endswith('_10_16') or date.endswith('_11_01') or
+#                 date.endswith('_11_16') or date.endswith('_12_01') or date.endswith('_12_16') or
+#                 date.endswith('_12_31')):
+#                 positions.append(str(line_number))
+
+file3.close()
+
+# Writing positions to a file
+with open('date_positions', 'w') as positions_file:
+    positions_file.write(','.join(positions))
+positions_file.close()
+
+dates = []
+values = []
+
+with open('analyst_data', 'r') as file4:
+    for line in file4:
+        line = line.strip()  # Remove leading/trailing whitespaces
+        if line != "nan" or line.startswith("teData\P"):
+            date, value = line.split('\t')  # Assuming the values are separated by tabs
+            dates.append(date)
+            values.append(float(value))
+file4.close()
+
+with open('analyst_data', 'r') as file5:
+    for line_year in file5:
+        line_year = line.strip()
+        if line_year != "nan" or line_year.startswith("teData\P"):
+            year = line_year[0:2]
+file5.close()
+
+# Plot
+plt.plot(dates, values, marker='.', markersize=5, linestyle='-', alpha=0.5, linewidth=1.0)
+plt.xlabel('Date')
+plt.ylabel('Statistical Multiplicity')
+plt.title('Statistical Multiplicity in 20{0}'.format(year))
+plt.ylim([1.95, 2.5])
+
+ticks = []
+
+with open('date_positions', 'r') as file6:
+    for line in file6:
+        tick_positions = line.strip().split(',')
+        for position in tick_positions:
+            ticks.append(int(position))
+file6.close()
+
+# year 2020
+plt.xticks(ticks = [0,15,31,46,60,75,91,106,120,135,
+                    147,159,168,182,195,207,216,228,241,253,
+                    269,283,297,310,320],
+          labels=["JAN 1", "JAN 16", "FEB 1", "FEB 16", "MAR 1", "MAR 16",
+                  "APR 1", "APR 16", "MAY 1", "MAY 16", "JUN 1", "JUN 15",
+                  "JUL 2", "JUL 16", "AUG 1", "AUG 17", "SEP 3", "SEP 16",
+                  "OCT 1", "OCT 16", "NOV 1", "NOV 16", "DEC 1", "DEC 17",
+                  "DEC 31"],rotation=90)
+
+# year 2021
+# plt.xticks(ticks = [0,15,30,44,57,71,87,102,117,131,
+#                     140,154,168,182,196,211,227,241,255,270,
+#                     286,300,315,328,341],
+#           labels=["JAN 1", "JAN 16", "FEB 1", "FEB 16", "MAR 1", "MAR 15",
+#                   "APR 1", "APR 16", "MAY 1", "MAY 16", "JUN 1", "JUN 15",
+#                   "JUL 1", "JUL 16", "AUG 1", "AUG 16", "SEP 1", "SEP 16",
+#                   "OCT 1", "OCT 16", "NOV 1", "NOV 16", "DEC 1", "DEC 16",
+#                   "DEC 31"],rotation=90)
+
+# year 2022
+# plt.xticks(ticks = [0,9,12,18,22,26,31,34,38,42,49,53,66,79,94,109,122,135,146],
+#           labels=["JAN 2", "JAN 16", "FEB 2", "FEB 18", "MAR 1", "MAR 16",
+#                   "APR 1", "APR 15", "MAY 22", "JUL 2", "AUG 6", "SEP 16",
+#                   "OCT 1", "OCT 16", "NOV 1", "NOV 16", "DEC 1", "DEC 16",
+#                   "DEC 31"],rotation=90)
+
+# year 2022
+# plt.xticks(ticks = ticks,
+#           labels=["JAN 2", "JAN 16", "FEB 2", "FEB 18", "MAR 1", "MAR 16",
+#                   "APR 1", "APR 15", "MAY 22", "JUL 2", "AUG 6", "SEP 16",
+#                   "OCT 1", "OCT 16", "NOV 1", "NOV 16", "DEC 1", "DEC 16",
+#                   "DEC 31"],rotation=90)
+
+plt.grid(True)
+plt.tight_layout()
+plt.show()
