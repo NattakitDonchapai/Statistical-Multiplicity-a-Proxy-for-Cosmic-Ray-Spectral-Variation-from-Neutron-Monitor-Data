@@ -1,0 +1,83 @@
+import os
+import matplotlib.pyplot as plt
+from datetime import datetime
+
+directory = '/content/drive/MyDrive/Senior_project_data/Leader Fraction_2020'
+
+with open("analyst_Leader_Fraction", "w") as file2:
+    # Function to calculate the average of Value5 for each day
+    def calculate_daily_average(data):
+        daily_averages = {}
+        for line in data:
+            parts = line.split()
+            if len(parts) >= 7:
+                date_str, time_str, *values = parts
+                try:
+                    date_time = datetime.strptime(date_str + ' ' + time_str, '%Y-%m-%d %H:%M:%S')
+                    value5 = float(values[4])
+                    if value5 != 0:
+                        date = date_time.date()
+                        if date not in daily_averages:
+                            daily_averages[date] = [value5, 1]  # [sum, count]
+                        else:
+                            daily_averages[date][0] += value5
+                            daily_averages[date][1] += 1
+                except ValueError:
+                    pass  # Skip lines that can't be parsed
+        return daily_averages
+
+    # List all files in the directory
+    files = os.listdir(directory)
+
+    # Sort the list of files in ascending order
+    files_sorted = sorted(files)
+
+    # Loop through each file and open it
+    for file_name in files_sorted:
+        file_path = os.path.join(directory, file_name)
+        with open(file_path, 'r') as file:
+            data = file.readlines()
+        daily_averages = calculate_daily_average(data)
+        # Sort the dates
+        sorted_dates = sorted(daily_averages.keys())
+        for date in sorted_dates:
+            total, count = daily_averages[date]
+            average = total / count
+            file2.write(f"{date}\t{average}\n")
+file2.close()
+
+dates = []
+values = []
+
+# Read data from file
+with open('analyst_Leader_Fraction', 'r') as file4:
+    for line in file4:
+        line = line.strip()  # Remove leading/trailing whitespaces
+        if line != "nan" and not line.startswith("teData\P"):  # Skip lines with 'nan' or starting with 'teData\P'
+            parts = line.split("\t")  # Assuming the values are separated by tabs
+            if len(parts) == 2:  # Ensure there are two parts (date and value)
+                date = parts[0]
+                value = parts[1]
+                dates.append(date)
+                values.append(float(value))
+file4.close()
+
+# Plot
+plt.plot(dates, values, marker='.', markersize=5, linestyle='-', alpha=0.5, linewidth=1.0)
+plt.xlabel('Date')
+plt.ylabel('Leader Fraction')
+plt.title('Leader Fraction in 2020')
+
+# year 2020
+plt.xticks(ticks = [0,15,31,46,60,75,91,106,121,136,
+                    152,166,183,195,211,227,244,257,272,287,
+                    303,318,333,347,361],
+          labels=["JAN 1", "JAN 16", "FEB 1", "FEB 16", "MAR 1", "MAR 16",
+                  "APR 1", "APR 16", "MAY 1", "MAY 16", "JUN 1", "JUN 15",
+                  "JUL 2", "JUL 16", "AUG 1", "AUG 17", "SEP 3", "SEP 16",
+                  "OCT 1", "OCT 16", "NOV 1", "NOV 16", "DEC 1", "DEC 17",
+                  "DEC 31"],rotation=90)
+
+plt.grid(True)
+plt.tight_layout()
+plt.show()
