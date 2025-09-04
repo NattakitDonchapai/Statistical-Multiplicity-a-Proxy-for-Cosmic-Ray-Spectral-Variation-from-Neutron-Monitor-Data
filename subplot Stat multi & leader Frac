@@ -1,0 +1,174 @@
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+from datetime import datetime
+
+# Directory containing the files for the first dataset
+directory1 = '/content/drive/MyDrive/Senior_project_data/MinuteData_For_Fluke_2020'
+
+# Directory containing the files for the second dataset
+directory2 = '/content/drive/MyDrive/Senior_project_data/Leader Fraction_2020'
+
+# Function to calculate the average of Value5 for each day
+def calculate_daily_average(data):
+    daily_averages = {}
+    for line in data:
+        parts = line.split()
+        if len(parts) >= 7:
+            date_str, time_str, *values = parts
+            try:
+                date_time = datetime.strptime(date_str + ' ' + time_str, '%Y-%m-%d %H:%M:%S')
+                value5 = float(values[4])
+                if value5 != 0:
+                    date = date_time.date()
+                    if date not in daily_averages:
+                        daily_averages[date] = [value5, 1]  # [sum, count]
+                    else:
+                        daily_averages[date][0] += value5
+                        daily_averages[date][1] += 1
+            except ValueError:
+                pass  # Skip lines that can't be parsed
+    return daily_averages
+
+with open("analyst_Leader_Fraction", "w") as file2:
+    # List all files in the directory
+    files = os.listdir(directory2)
+
+    # Sort the list of files in ascending order
+    files_sorted = sorted(files)
+
+    # Loop through each file and open it
+    for file_name in files_sorted:
+        file_path = os.path.join(directory2, file_name)
+        with open(file_path, 'r') as file:
+            data = file.readlines()
+        daily_averages = calculate_daily_average(data)
+        # Sort the dates
+        sorted_dates = sorted(daily_averages.keys())
+        for date in sorted_dates:
+            total, count = daily_averages[date]
+            average = total / count
+            file2.write(f"{date}\t{average}\n")
+
+# open file outside loop
+with open("analyst_data", "w") as file2:
+    # Loop through each file and open it
+    for file_name in sorted(os.listdir(directory1)):
+        file_path = os.path.join(directory1, file_name)
+        # Attempt to open the file
+        try:
+            with open(file_path, 'r') as file:
+                # print(file_path)
+                line_data = file.readlines()
+                with open("cut_data", "w") as file1:
+                    for line in line_data:
+                        if line.startswith(("S10", "S20", "S30", "S40", "S50", "S00")):
+                            data = line[6:]
+                            file1.write(data)
+                file1.close()
+            file.close()
+        except Exception as e:
+            # print(f"Error processing file {file_name}: {e}")
+            continue  # Skip to the next file
+
+        # Load data from "cut_data" file
+        with open("cut_data", "r") as filename:
+            try:
+                data = np.loadtxt(filename, comments='#', usecols=range(18), unpack=True)
+            except Exception as e:
+                # print(f"Error loadtxt {file_name}: {e}")
+                continue
+        filename.close()
+
+        try:
+            with open(file_path, 'r') as file:
+                line_data = file.readlines()
+            for line in line_data:
+                if line.startswith("Subject"):
+                    # print(line)
+                    date = line[38:46]
+                    # print(date)
+                    file2.write(date +"\t")
+            file.close()
+        except Exception as e:
+            # print(f"Error processing file {file_name}: {e}")
+            continue  # Skip to the next file
+
+        # Calculate statistics and write to "analyst_data" file
+        total_stat_multi = 0.00
+        for x in range(18):
+            tube = data[x, :]
+            # average = int(np.nanmean(tube))
+            for j in range(len(tube)):
+                if not (0 < tube[j] < 999):
+                    tube[j] = np.nan
+            A = np.nanmean(tube)
+            B = np.nanstd(tube)
+            C = B ** 2 / A
+            total_stat_multi += C
+        mean_stat_multi = total_stat_multi/18
+        file2.write(f"{mean_stat_multi}\n")
+file2.close()
+
+dates = []
+values = []
+
+with open('analyst_data', 'r') as file4:
+    for line in file4:
+        line = line.strip()  # Remove leading/trailing whitespaces
+        if line != "nan" or line.startswith("teData\P"):
+            date, value = line.split('\t')  # Assuming the values are separated by tabs
+            dates.append(date)
+            values.append(float(value))
+file4.close()
+
+# Create subplots
+fig, axes = plt.subplots(2, 1, figsize=(10, 8))
+
+# Plot for the first dataset
+axes[0].set_title('Statistical Multiplicity in 2020')
+with open("analyst_data", "r") as file:
+    dates = []
+    values = []
+    for line in file:
+        if not line.startswith("nan") and not line.startswith("teData\P"):
+            date, value = line.split('\t')
+            dates.append(date)
+            values.append(float(value))
+    axes[0].plot(dates, values, marker='.', markersize=5, linestyle='-', alpha=0.5, linewidth=1.0)
+    axes[0].set_xlabel('Date')
+    axes[0].set_ylabel('Statistical Multiplicity')
+    axes[0].set_ylim([1.95, 2.3])
+    axes[0].set_xticks(ticks=[0,15,31,46,60,75,91,106,120,135,
+                    147,159,168,182,195,207,216,228,241,253,
+                    269,283,297,310,320])
+    axes[0].set_xticklabels(labels=["JAN 1", "JAN 16", "FEB 1", "FEB 16", "MAR 1", "MAR 16",
+                  "APR 1", "APR 16", "MAY 1", "MAY 16", "JUN 1", "JUN 15",
+                  "JUL 2", "JUL 16", "AUG 1", "AUG 17", "SEP 3", "SEP 16",
+                  "OCT 1", "OCT 16", "NOV 1", "NOV 16", "DEC 1", "DEC 17",
+                  "DEC 31"],rotation=90)
+
+# Plot for the second dataset
+axes[1].set_title('Leader Fraction in 2020')
+with open("analyst_Leader_Fraction", "r") as file:
+    dates = []
+    values = []
+    for line in file:
+        if not line.startswith("nan") and not line.startswith("teData\P"):
+            date, value = line.split('\t')
+            dates.append(date)
+            values.append(float(value))
+    axes[1].plot(dates, values, marker='.', markersize=5, linestyle='-', alpha=0.5, linewidth=1.0)
+    axes[1].set_xlabel('Date')
+    axes[1].set_ylabel('Leader Fraction')
+    axes[1].set_xticks(ticks=[0,15,31,46,60,75,91,106,121,136,
+                    152,166,183,195,211,227,244,257,272,287,
+                    303,318,333,347,361])
+    axes[1].set_xticklabels(labels=["JAN 1", "JAN 16", "FEB 1", "FEB 16", "MAR 1", "MAR 16",
+                  "APR 1", "APR 16", "MAY 1", "MAY 16", "JUN 1", "JUN 15",
+                  "JUL 2", "JUL 16", "AUG 1", "AUG 17", "SEP 3", "SEP 16",
+                  "OCT 1", "OCT 16", "NOV 1", "NOV 16", "DEC 1", "DEC 17",
+                  "DEC 31"],rotation=90)
+
+plt.tight_layout()
+plt.show()
